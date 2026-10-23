@@ -8,8 +8,8 @@ Widget panel KDE Plasma 6 untuk memantau **kecepatan jaringan realtime** dan **k
 
 ## Fitur
 
-- **Panel**: kecepatan `⇣` unduh dan `⇡` unggah (lebar kolom terkunci — angka berubah tiap detik tidak menggeser layout), dot status konektivitas (hijau = penuh, kuning = portal/terbatas, merah = putus).
-- **Popup (satu area scroll, teks wrap — tidak ada yang terpotong)**:
+- **Panel**: kecepatan `⇣` unduh dan `⇡` unggah (lebar kolom terkunci — angka berubah tiap detik tidak menggeser layout), dot status konektivitas: **hijau** = internet OK, **kuning** = terhubung tapi internet tidak terjangkau/portal, **merah** = link putus. Dot dicek lewat probe cepat sendiri tiap **0,5 dtk** — tidak menunggu verifikasi berkala NetworkManager.
+- **Popup (satu area scroll, tanpa scrollbar — scroll via wheel/drag; teks wrap, tidak ada yang terpotong)**:
   - Jaringan aktif + kuota hari ini di jaringan tersebut.
   - Split IP: **Lokal**, **IPv6**, **Publik**.
   - Pemakaian `⇣` / `⇡` hari ini di jaringan aktif.
@@ -98,6 +98,7 @@ Klik kanan widget → **Configure Network Speed Quota…**
 ## Cara kerja & data
 
 - Byte `rx/tx` dibaca dari **`/proc/net/dev`** setiap interval; hanya interface **default route** yang dihitung.
+- Status dot panel dicek mandiri tiap **500 ms**: link putus terdeteksi instan dari `/sys/class/net/*/operstate`, internet diuji dengan **TCP handshake** (tanpa mengirim data — hemat kuota) ke `1.1.1.1` / `9.9.9.9` (IPv4 & IPv6). Hasil sukses di-cache 2 detik; kegagalan tidak di-cache supaya mati internet cepat terdeteksi (maks. ±1 detik).
 - Nama jaringan: SSID WiFi via `nmcli`, atau `Ethernet (iface)` / tipe lain.
 - Data harian: `~/.local/state/netspeed-quota/daily/YYYY-MM-DD.json`
   State internal: `~/.local/state/netspeed-quota/state.json`
@@ -114,6 +115,7 @@ Klik kanan widget → **Configure Network Speed Quota…**
 | Widget tidak muncul di daftar | Pastikan Plasma 6; ulangi langkah 3; cek `kpackagetool6 --type Plasma/Applet --list \| grep org.ram.netspeed` |
 | Kecepatan panel selalu 0 | Sensor KSysGuard belum siap — widget otomatis fallback ke data helper; pastikan `libksysguard` terpasang |
 | Nama jaringan kosong | NetworkManager tidak aktif atau `nmcli` butuh izin polkit |
+| Dot kuning padahal internet normal | Jaringan memblokir TCP ke `1.1.1.1`/`9.9.9.9:443`; kuning berarti “internet tidak terverifikasi” |
 | IP publik kosong | `curl`/`api.ipify.org` diblokir — matikan `usePublicIp` |
 | “Tidak terhubung” padahal online | Cek `ip route show default`; VPN split-tunnel bisa mengubah default route |
 | Ingin melihat log | `journalctl --user -u plasma-plasmashell -f` atau jalankan `plasmashell --replace` dari terminal |
@@ -132,7 +134,8 @@ python3 ~/.local/share/plasma/plasmoids/org.ram.netspeed/contents/code/netspeedq
 metadata.json
 contents/
 ├── code/
-│   └── netspeedquota.py        # helper pengumpul data → JSON (DataEngine executable)
+│   ├── netspeedquota.py        # helper pengumpul data → JSON (DataEngine executable)
+│   └── netstate.py             # probe status konektivitas cepat (dot panel)
 ├── config/
 │   └── main.xml                # skema konfigurasi (KConfigXT)
 └── ui/

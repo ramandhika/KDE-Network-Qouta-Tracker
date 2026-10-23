@@ -89,8 +89,9 @@ Item {
         contentHeight: contentCol.height + fullRep.contentMargin * 2
         boundsBehavior: Flickable.StopAtBounds
 
-        // scrollbar tipis khas Plasma (pola sama dengan FolderView KDE)
-        PC3.ScrollBar.vertical: PC3.ScrollBar { }
+        // sengaja tanpa ScrollBar: style scrollbar dihilangkan, tapi area tetap
+        // Flickable — scroll roda mouse / drag masih berfungsi normal.
+        // (Flickable menangani wheel & drag sendiri, jadi tidak perlu ScrollBar.)
 
         ColumnLayout {
             id: contentCol

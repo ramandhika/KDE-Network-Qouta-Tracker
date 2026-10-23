@@ -4,8 +4,11 @@
     - FIXED width per item: kolom ⇣/⇡ dikunci ke lebar nilai realistis terlebar
       (diukur TextMetrics) dengan clamp sweet spot 4.5–6 GU — angka berubah tiap
       detik tidak menggeser layout panel, tapi panel tidak melebar sembarangan.
-    - Dot indikator (netstate = nmcli CONNECTIVITY):
+    - Dot indikator (netstate):
         hijau = full, kuning = portal/limited, merah = none.
+      Sumbernya probe cepat sendiri (netstate.py, ~0.5 dtk) — bukan state
+      CONNECTIVITY NetworkManager yang diverifikasi berkala, jadi reaksinya
+      jauh lebih cepat dan link-down terdeteksi instan.
 */
 import QtQuick
 import QtQuick.Layouts
@@ -20,6 +23,7 @@ RowLayout {
 
     // disuntik dari main.qml
     property var d: ({})
+    property string netstateFast: ""
     property var speed: ({"down": 0, "up": 0})
     property var total: ({"down": 0, "up": 0})
     property var fmtBytes: null
@@ -34,9 +38,9 @@ RowLayout {
     readonly property bool sensorsReady:
         downSensor.status === SG.Sensor.Ready && upSensor.status === SG.Sensor.Ready
 
-    // warna dot konnektivitas
+    // warna dot konnektivitas — utamakan probe cepat, fallback ke data helper
     readonly property color dotColor: {
-        var st = String(d.netstate || "")
+        var st = String(compact.netstateFast || compact.d.netstate || "")
         if (st === "full") return "#2ecc71"
         if (st === "portal" || st === "limited") return "#f1c40f"
         if (st === "none") return "#e74c3c"

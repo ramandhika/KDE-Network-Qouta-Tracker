@@ -18,6 +18,10 @@ PlasmoidItem {
     // ---- data dari helper (JSON) ----
     property var d: ({})
 
+    // status konektivitas cepat untuk dot panel (probe sendiri ~0.5 dtk,
+    // tidak menunggu verifikasi berkala dari NetworkManager)
+    property string netstateFast: ""
+
     readonly property var speed: d.speed || ({"down": 0, "up": 0})
     readonly property var total: d.total || ({"down": 0, "up": 0})
     // kuota hari ini di jaringan aktif (reset saat ganti jaringan → mulai dari 0)
@@ -53,6 +57,7 @@ PlasmoidItem {
 
     compactRepresentation: CompactRepresentation {
         d: root.d
+        netstateFast: root.netstateFast
         speed: root.speed
         total: root.total
         fmtBytes: root.fmtBytes
@@ -98,6 +103,34 @@ PlasmoidItem {
                 }
             } catch (e) {
                 console.warn("netspeedquota: JSON tidak valid dari helper — diabaikan")
+            }
+        }
+    }
+
+    // Probe ringan khusus dot status: responsif (~0.5 dtk) dan mendeteksi
+    // link-down instan lewat sysfs (lihat contents/code/netstate.py).
+    P5Support.DataSource {
+        id: fastNetState
+        engine: "executable"
+        readonly property url scriptUrl: Qt.resolvedUrl("../code/netstate.py")
+        readonly property string basePath: scriptUrl.toString().replace(/^(file:\/\/|file:\/\/\/)/, "/")
+        readonly property string script: "sh -c 'python3 \"" + basePath + "\"'"
+
+        connectedSources: [script]
+        interval: 500
+
+        onNewData: (source, data) => {
+            if (source !== connectedSources[0]) {
+                disconnectSource(source)
+                return
+            }
+            try {
+                var parsed = JSON.parse(String(data.stdout))
+                if (parsed && typeof parsed.state === "string" && parsed.state.length > 0) {
+                    root.netstateFast = parsed.state
+                }
+            } catch (e) {
+                // biarkan state terakhir — jangan berkedip merah palsu
             }
         }
     }
