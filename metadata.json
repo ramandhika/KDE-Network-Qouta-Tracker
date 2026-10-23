@@ -1,0 +1,19 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Id": "org.ram.netspeed",
+        "Name": "Network Speed Quota",
+        "Description": "Kecepatan jaringan di panel; hover & popup menampilkan kuota hari ini di jaringan aktif (reset otomatis tiap hari per jaringan), rekap semua jaringan yang dipakai hari ini beserta pakainya, dan split IP (lokal, IPv6, publik).",
+        "Version": "3.0",
+        "Icon": "network-wireless",
+        "Authors": [
+            {
+                "Name": "ram"
+            }
+        ],
+        "License": "GPL-2.0+"
+    },
+    "X-Plasma-API": "declarativeappletscript",
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-MainScript": "ui/main.qml"
+}

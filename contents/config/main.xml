@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+    <group name="General">
+        <entry name="updateInterval" type="Int">
+            <label>Interval pembaruan data dalam milidetik</label>
+            <default>1000</default>
+        </entry>
+        <entry name="usePublicIp" type="Bool">
+            <label>Ambil IP publik lewat api.ipify.org (hanya saat jaringan berganti)</label>
+            <default>true</default>
+        </entry>
+        <entry name="showTodayInPanel" type="Bool">
+            <label>Tampilkan total kuota hari ini langsung di panel (di bawah kecepatan)</label>
+            <default>false</default>
+        </entry>
+    </group>
+</kcfg>
