@@ -5,8 +5,8 @@
       http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
     <group name="General">
         <entry name="updateInterval" type="Int">
-            <label>Interval pembaruan data dalam milidetik</label>
-            <default>1000</default>
+            <label>Interval pembaruan data kuota dalam milidetik (kecepatan realtime diambil dari sensor ksystemstats, bukan interval ini)</label>
+            <default>3000</default>
         </entry>
         <entry name="usePublicIp" type="Bool">
             <label>Ambil IP publik lewat api.ipify.org (hanya saat jaringan berganti)</label>

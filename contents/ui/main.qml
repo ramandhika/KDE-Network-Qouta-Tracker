@@ -18,7 +18,7 @@ PlasmoidItem {
     // ---- data dari helper (JSON) ----
     property var d: ({})
 
-    // status konektivitas cepat untuk dot panel (probe sendiri ~0.5 dtk,
+    // status konektivitas cepat untuk dot panel (probe sendiri ~3 dtk,
     // tidak menunggu verifikasi berkala dari NetworkManager)
     property string netstateFast: ""
 
@@ -107,8 +107,8 @@ PlasmoidItem {
         }
     }
 
-    // Probe ringan khusus dot status: responsif (~0.5 dtk) dan mendeteksi
-    // link-down instan lewat sysfs (lihat contents/code/netstate.py).
+    // Probe ringan khusus dot status: responsif (3 dtk — sejalan budget respons)
+    // dan mendeteksi link-down instan lewat sysfs (lihat contents/code/netstate.py).
     P5Support.DataSource {
         id: fastNetState
         engine: "executable"
@@ -117,7 +117,7 @@ PlasmoidItem {
         readonly property string script: "sh -c 'python3 \"" + basePath + "\"'"
 
         connectedSources: [script]
-        interval: 500
+        interval: 3000
 
         onNewData: (source, data) => {
             if (source !== connectedSources[0]) {

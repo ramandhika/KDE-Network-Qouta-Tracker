@@ -1,14 +1,15 @@
 /*
     Panel (kiri → kanan): [dot internet] [⇣ download] [⇡ upload]  (+ baris "Today" opsional)
-    - Kecepatan = sensor ksysguard (network/all/*) sama dengan widget stok (1 dtk).
+    - Kecepatan = sensor ksysguard (network/all/*) realtime in-process, sama
+      dengan widget stok — tanpa spawn proses tambahan.
     - FIXED width per item: kolom ⇣/⇡ dikunci ke lebar nilai realistis terlebar
       (diukur TextMetrics) dengan clamp sweet spot 4.5–6 GU — angka berubah tiap
       detik tidak menggeser layout panel, tapi panel tidak melebar sembarangan.
     - Dot indikator (netstate):
         hijau = full, kuning = portal/limited, merah = none.
-      Sumbernya probe cepat sendiri (netstate.py, ~0.5 dtk) — bukan state
+      Sumbernya probe cepat sendiri (netstate.py, ~3 dtk) — bukan state
       CONNECTIVITY NetworkManager yang diverifikasi berkala, jadi reaksinya
-      jauh lebih cepat dan link-down terdeteksi instan.
+      tetap jauh lebih cepat dan link-down tetap terdeteksi instan.
 */
 import QtQuick
 import QtQuick.Layouts
