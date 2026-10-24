@@ -90,9 +90,10 @@ Item {
         contentHeight: contentCol.height + fullRep.contentMargin * 2
         boundsBehavior: Flickable.StopAtBounds
 
-        // sengaja tanpa ScrollBar: style scrollbar dihilangkan, tapi area tetap
-        // Flickable — scroll roda mouse / drag masih berfungsi normal.
-        // (Flickable menangani wheel & drag sendiri, jadi tidak perlu ScrollBar.)
+        // Sengaja tetap Flickable, TAPI dengan scrollbar tipis (auto-hide):
+        // tanpa indikator ini daftar rekap terlihat "hilang" karena baris
+        // kedua dan seterusnya berada di bawah lipatan popup.
+        PC3.ScrollBar.vertical: PC3.ScrollBar {}
 
         ColumnLayout {
             id: contentCol
@@ -127,7 +128,7 @@ Item {
                     Layout.fillWidth: true
 
                     PC3.Label {
-                        text: d.net || "Tidak terhubung"
+                        text: d.net || "Not connected"
                         font.bold: true
                         Layout.fillWidth: true
                         elide: Text.ElideRight
@@ -135,7 +136,7 @@ Item {
                     PC3.Label {
                         visible: text.length > 0
                         text: fullRep.d.iface
-                              ? fullRep.d.iface + " || " + (fullRep.d.type || "jaringan")
+                              ? fullRep.d.iface + " || " + (fullRep.d.type || "network")
                               : ""
                         color: Kirigami.Theme.disabledTextColor
                         font.pointSize: Kirigami.Units.defaultFontPointSize - 1
@@ -172,24 +173,24 @@ Item {
                 spacing: Kirigami.Units.smallSpacing
                 Layout.fillWidth: true
 
-                SectionLabel { text: "IP (split)" }
+                SectionLabel { text: "IP addresses" }
 
                 // split: lokal dan publik terpisah
                 PC3.Label {
-                    text: "Lokal : " + (fullRep.d.ip || "–")
+                    text: "Local: " + (fullRep.d.ip || "–")
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                 }
                 PC3.Label {
                     visible: fullRep.d.ip6 ? (fullRep.d.ip6.length > 0) : false
-                    text: visible ? "IPv6 : " + fullRep.d.ip6 : ""
+                    text: visible ? "IPv6: " + fullRep.d.ip6 : ""
                     color: Kirigami.Theme.disabledTextColor
                     font.pointSize: Kirigami.Units.defaultFontPointSize - 1
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                 }
                 PC3.Label {
-                    text: "Publik : " + (fullRep.d.pubip || "...")
+                    text: "Public: " + (fullRep.d.pubip || "...")
                     color: Kirigami.Theme.disabledTextColor
                     Layout.fillWidth: true
                     elide: Text.ElideRight
@@ -204,7 +205,7 @@ Item {
                 spacing: Kirigami.Units.smallSpacing
                 Layout.fillWidth: true
 
-                SectionLabel { text: "Kuota Hari Ini (" + (fullRep.dayLabel || fullRep.d.day || "") + ") — reset tiap hari" }
+                SectionLabel { text: "Today's usage (" + (fullRep.dayLabel || fullRep.d.day || "") + ") — resets daily" }
 
                 PC3.Label {
                     // jaringan aktif saja — font sedikit dikecilkan + wrap,
@@ -233,7 +234,7 @@ Item {
                 }
                 PC3.Label {
                     // rekap gabungan seluruh jaringan hari ini — wrap biar tidak overflow
-                    text: "Semua jaringan hari ini: " + (fullRep.fmtBytes
+                    text: "All networks today: " + (fullRep.fmtBytes
                            ? fullRep.fmtBytes(fullRep.total.down + fullRep.total.up) : "")
                     color: Kirigami.Theme.disabledTextColor
                     font.pointSize: Kirigami.Units.defaultFontPointSize - 1
@@ -250,7 +251,7 @@ Item {
                 spacing: Kirigami.Units.smallSpacing
                 Layout.fillWidth: true
 
-                SectionLabel { text: "Rekap Jaringan Hari Ini" }
+                SectionLabel { text: "Today's networks (" + fullRep.list.length + ")" }
 
                 // daftar ikut scroll bersama seluruh popup (tanpa Flickable
                 // bersarang) — baris panjang tidak akan terpotong
@@ -317,7 +318,7 @@ Item {
                                                + "–" + Qt.formatTime(new Date(modelData.last * 1000), "HH:mm"))
                                     }
                                     if (row.activeNet && fullRep.d.pubip) {
-                                        p.push("publik: " + fullRep.d.pubip)
+                                        p.push("public: " + fullRep.d.pubip)
                                     }
                                     return p.join(" · ")
                                 }
@@ -332,7 +333,7 @@ Item {
 
                 PC3.Label {
                     visible: fullRep.list.length === 0
-                    text: "Belum ada jaringan tercatat hari ini."
+                    text: "No networks recorded today yet."
                     color: Kirigami.Theme.disabledTextColor
                     Layout.fillWidth: true
                     wrapMode: Text.Wrap
@@ -341,7 +342,7 @@ Item {
 
             // ============ FOOTER ============
             PC3.Label {
-                text: "Counter reset otomatis tiap hari. Rekap disimpan 90 hari."
+                text: "Counters reset daily. History is kept for 90 days."
                 color: Kirigami.Theme.disabledTextColor
                 font.pointSize: Kirigami.Units.defaultFontPointSize - 2
                 Layout.fillWidth: true

@@ -47,10 +47,10 @@ PlasmoidItem {
     Plasmoid.icon: d.type === "wifi" ? "network-wireless" : "network-wired"
 
     // Hover: kuota hari ini di jaringan aktif + split IP
-    toolTipMainText: d.net || "Tidak terhubung"
-    toolTipSubText: "Hari ini: " + fmtBytes(curr.down + curr.up)
-        + (d.ip ? " || IP Lokal: " + d.ip : "")
-        + (d.pubip ? " || IP Publik: " + d.pubip : "")
+    toolTipMainText: d.net || "Not connected"
+    toolTipSubText: "Today: " + fmtBytes(curr.down + curr.up)
+        + (d.ip ? " || Local IP: " + d.ip : "")
+        + (d.pubip ? " || Public IP: " + d.pubip : "")
 
     switchWidth: Kirigami.Units.gridUnit * 9
     switchHeight: Kirigami.Units.gridUnit * 9
