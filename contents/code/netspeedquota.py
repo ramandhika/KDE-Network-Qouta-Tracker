@@ -7,7 +7,8 @@
 #     sedang dipakai) → antre VPN/tunnel tidak dihitung dobel.
 #   * Kuota per hari disimpan PER JARINGAN (SSID/ethernet) di
 #     ~/.local/state/netspeed-quota/daily/YYYY-MM-DD.json → reset otomatis tiap hari.
-#   * Nama jaringan: SSID WiFi (via nmcli) atau "Ethernet (iface)".
+#   * Nama jaringan: SSID WiFi (dibaca tiap poll via `iw link`) atau
+#     "Ethernet (iface)" → tiap SSID punya entri rekap sendiri.
 #   * IP lokal diperoleh dari `ip -j addr`, IP publik dari api.ipify.org (cache).
 #   * Output: JSON satu baris (dibaca widget lewat DataEngine "executable").
 #
@@ -26,7 +27,7 @@ DAILY_DIR = os.path.join(STATE_DIR, "daily")
 STATE_PATH = os.path.join(STATE_DIR, "state.json")
 
 STALE_DEV = 600        # det  — cache tipe perangkat (nmcli)
-STALE_NETNAME = 300    # det  — cache nama (SSID) & IP lokal per interface
+STALE_NETNAME = 300    # det  — cache IP lokal per interface (identitas jaringan selalu segar)
 PUBLIC_STALE = 12 * 3600  # det — refresh IP publik
 MAX_KEEP_DAYS = 90     # berkas rekap harian disimpan selama ini
 
@@ -111,9 +112,35 @@ def device_types():
     return m
 
 
+def _num(val):
+    try:
+        return float(val.split()[0])
+    except (ValueError, IndexError):
+        return None
+
+
+def wifi_link(dev):
+    """Detail AP yang benar-benar tersambung. `iw link` ~1 ms dan tidak
+    memicu scan (nmcli `wifi list` ~13 ms dan bisa scan)."""
+    txt = run(["iw", "dev", dev, "link"], timeout=2)
+    info = {}
+    for line in (txt or "").splitlines():
+        line = line.strip()
+        if line.startswith("SSID: "):
+            info["ssid"] = line[6:]
+        elif line.startswith("freq: "):
+            info["freq"] = _num(line[6:])
+        elif line.startswith("signal: "):
+            info["signal"] = _num(line[8:])
+        elif line.startswith("rx bitrate: "):
+            info["rate"] = _num(line[12:])
+    return info
+
+
 def wifi_ssid(dev):
     # 1) SSID sebenarnya dari AP aktif (tanpa scan bila hasil NM masih segar)
-    txt = run(["nmcli", "-t", "-f", "ACTIVE,SSID", "device", "wifi", "list", "ifname", dev], timeout=6)
+    txt = run(["nmcli", "-t", "-f", "ACTIVE,SSID", "device", "wifi", "list",
+               "ifname", dev, "--rescan", "no"], timeout=6)
     if txt:
         for line in txt.splitlines():
             if line.startswith("yes:"):
@@ -248,19 +275,25 @@ def main():
         entries = daily["list"]
 
         active = None
+        winfo = {}
         if dev:
             r = res.setdefault(dev, {"type": devtype})
-            # perbarui nama (SSID) & IP lokal bila cache tua
-            if ts - r.get("ts", 0) > STALE_NETNAME:
-                ssid = wifi_ssid(dev) if devtype == "wifi" else ""
-                if devtype == "wifi":
-                    r["ssid"] = ssid
-                newname = net_name_of(dev, devtype, ssid or r.get("ssid", ""))
-                oldname = r.get("name")
-                if newname != oldname:
-                    r["name"] = newname
-                    if oldname:
-                        r.setdefault("aliases", []).append(oldname)
+
+            # Identitas jaringan dibaca SETIAP poll (~1 ms, tanpa scan). Dulu
+            # nama/SSID di-cache 300 dtk sehingga ganti WiFi tidak terlihat dan
+            # delta WiFi baru dicatat ke entri WiFi lama (dua WiFi menyatu).
+            ssid = ""
+            if devtype == "wifi":
+                winfo = wifi_link(dev)
+                ssid = winfo.get("ssid") or r.get("ssid") or wifi_ssid(dev)
+                r["ssid"] = ssid
+            name = net_name_of(dev, devtype, ssid)
+            switched = name != r.get("name")
+            r["name"] = name
+            r["type"] = devtype
+
+            # IP lokal: refresh saat jaringan berganti atau cache tua
+            if switched or ts - r.get("ts", 0) > STALE_NETNAME:
                 ips = local_ips(dev)
                 r["ip"] = next((a["local"] for a in ips
                                 if a["family"] == "inet"), "")
@@ -269,32 +302,21 @@ def main():
                                  and a.get("scope") == "global"), "")
                 r["ts"] = ts
 
-            r["type"] = devtype
-            ekey = r.get("name")
-            if ekey:
-                e = entries.get(ekey)
-                if e is None:
-                    e = entries.setdefault(ekey, {
-                        "name": ekey, "type": devtype, "iface": dev,
-                        "ip": r.get("ip", ""), "ip6": r.get("ip6", ""),
-                        "down": 0.0, "up": 0.0, "first": ts, "last": ts,
-                    })
-                # gabungkan entri alias (SSID berubah saat dipakai hari ini)
-                for alias in list(r.get("aliases", [])):
-                    if alias != ekey and alias in entries:
-                        old = entries.pop(alias)
-                        e["down"] += old.get("down", 0)
-                        e["up"] += old.get("up", 0)
-                        e["last"] = max(e.get("last", 0), old.get("last", 0))
-                        r["aliases"].remove(alias)
-                drx, dtx = deltas.get(dev, (0, 0))
-                if e.get("ip") != r.get("ip", "") or e.get("ip6") != r.get("ip6", ""):
-                    e["ip"], e["ip6"] = r.get("ip", ""), r.get("ip6", "")
-                e["type"] = devtype
-                e["down"] += drx
-                e["up"] += dtx
-                e["last"] = ts
-                active = e
+            e = entries.get(name)
+            if e is None:
+                e = entries.setdefault(name, {
+                    "name": name, "type": devtype, "iface": dev,
+                    "ip": r.get("ip", ""), "ip6": r.get("ip6", ""),
+                    "down": 0.0, "up": 0.0, "first": ts, "last": ts,
+                })
+            drx, dtx = deltas.get(dev, (0, 0))
+            if e.get("ip") != r.get("ip", "") or e.get("ip6") != r.get("ip6", ""):
+                e["ip"], e["ip6"] = r.get("ip", ""), r.get("ip6", "")
+            e["type"] = devtype
+            e["down"] += drx
+            e["up"] += dtx
+            e["last"] = ts
+            active = e
 
         # total = jumlah seluruh entri hari ini
         daily["total"] = {
@@ -341,6 +363,7 @@ def main():
         "ip": (res.get(dev, {}) or {}).get("ip", "") if dev else "",
         "ip6": (res.get(dev, {}) or {}).get("ip6", "") if dev else "",
         "pubip": pubip,
+        "wifi": winfo if devtype == "wifi" else {},
         "netstate": nm_connectivity(),
         "speed": speed.get(dev, {"down": 0, "up": 0}) if dev else {"down": 0, "up": 0},
         "curr": ({"down": active["down"], "up": active["up"]} if active else {"down": 0, "up": 0}),

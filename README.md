@@ -8,13 +8,13 @@ Widget panel KDE Plasma 6 untuk memantau **kecepatan jaringan realtime** dan **k
 
 ## Fitur
 
-- **Panel**: kecepatan `⇣` unduh dan `⇡` unggah (lebar kolom terkunci — angka berubah tiap detik tidak menggeser layout), dot status konektivitas: **hijau** = internet OK, **kuning** = terhubung tapi internet tidak terjangkau/portal, **merah** = link putus. Dot dicek lewat probe cepat sendiri tiap **0,5 dtk** — tidak menunggu verifikasi berkala NetworkManager.
+- **Panel**: kecepatan `⇣` unduh dan `⇡` unggah (lebar kolom terkunci — angka berubah tiap detik tidak menggeser layout), dot status konektivitas: **hijau** = internet OK, **kuning** = terhubung tapi internet tidak terjangkau/portal, **merah** = link putus. Dot dicek lewat probe cepat sendiri tiap **3 dtk** — tidak menunggu verifikasi berkala NetworkManager.
 - **Popup (satu area scroll, tanpa scrollbar — scroll via wheel/drag; teks wrap, tidak ada yang terpotong)**:
-  - Jaringan aktif + kuota hari ini di jaringan tersebut.
+  - Jaringan aktif + detail AP WiFi (**sinyal, frekuensi, link rate** — ikut berubah tiap poll).
   - Split IP: **Lokal**, **IPv6**, **Publik**.
   - Pemakaian `⇣` / `⇡` hari ini di jaringan aktif.
-  - **Rekap Jaringan Hari Ini**: semua jaringan yang dipakai hari ini + bar perbandingan pemakaian, diurutkan dari yang terakhir aktif.
-- **Counter harian per jaringan**: pindah WiFi → angka jaringan baru mulai dari 0; pindah balik → angka lama tetap.
+  - **Rekap Jaringan Hari Ini**: semua jaringan yang dipakai hari ini + bar perbandingan pemakaian + rentang waktu pemakaian, diurutkan dari yang terakhir aktif.
+- **Counter harian per jaringan**: pindah WiFi → angka jaringan baru mulai dari 0; pindah balik → angka lama tetap. Perpindahan SSID terdeteksi tiap poll, jadi dua WiFi tidak pernah digabung menjadi satu baris.
 - Reset otomatis saat ganti hari (tanggal lokal), arsip harian disimpan **90 hari**.
 - Beberapa instance widget tidak menghitung dobel (`flock` pada state dir).
 - Konfigurasi: interval update, IP publik on/off, tampilkan total hari ini di panel.
@@ -28,7 +28,8 @@ Widget panel KDE Plasma 6 untuk memantau **kecepatan jaringan realtime** dan **k
 | KDE Plasma | 6.0 atau lebih baru (Wayland/X11) |
 | Linux | `fcntl`/`/proc/net/dev` — khusus Linux |
 | Python | 3.8+ (`python3`) |
-| NetworkManager | `nmcli` untuk nama SSID & status konektivitas |
+| NetworkManager | `nmcli` — status konektivitas & fallback nama SSID |
+| `iw` | detail AP WiFi: SSID, sinyal, frekuensi, link rate |
 | iproute2 | perintah `ip` (routing & IP lokal) |
 | curl | opsional — mengambil IP publik dari `api.ipify.org` |
 | Sensor KSysGuard | untuk kecepatan panel (tersedia di instalasi Plasma standar) |
@@ -89,7 +90,7 @@ Klik kanan widget → **Configure Network Speed Quota…**
 
 | Opsi | Default | Keterangan |
 |---|---|---|
-| `updateInterval` | `1000` ms | Interval pembaruan data (minimal 500 ms) |
+| `updateInterval` | `3000` ms | Interval pembaruan data (minimal 500 ms) |
 | `usePublicIp` | `true` | Ambil IP publik via `api.ipify.org` (cache 12 jam). Matikan bila offline atau tidak ingin keluar jaringan |
 | `showTodayInPanel` | `false` | Tampilkan total kuota hari ini di panel (baris “Today” di bawah kecepatan) |
 
@@ -98,8 +99,8 @@ Klik kanan widget → **Configure Network Speed Quota…**
 ## Cara kerja & data
 
 - Byte `rx/tx` dibaca dari **`/proc/net/dev`** setiap interval; hanya interface **default route** yang dihitung.
-- Status dot panel dicek mandiri tiap **500 ms**: link putus terdeteksi instan dari `/sys/class/net/*/operstate`, internet diuji dengan **TCP handshake** (tanpa mengirim data — hemat kuota) ke `1.1.1.1` / `9.9.9.9` (IPv4 & IPv6). Hasil sukses di-cache 2 detik; kegagalan tidak di-cache supaya mati internet cepat terdeteksi (maks. ±1 detik).
-- Nama jaringan: SSID WiFi via `nmcli`, atau `Ethernet (iface)` / tipe lain.
+- Status dot panel dicek mandiri tiap **3 dtk**: link putus terdeteksi instan dari `/sys/class/net/*/operstate`, internet diuji dengan **TCP handshake** (tanpa mengirim data — hemat kuota) ke `1.1.1.1` / `9.9.9.9` (IPv4 & IPv6). Hasil sukses di-cache 2 detik; kegagalan tidak di-cache supaya mati internet cepat terdeteksi (maks. ±1 detik).
+- Nama jaringan: SSID WiFi via `iw dev <iface> link` (fallback `nmcli`) yang dibaca **setiap poll** — pindah SSID langsung membuat entri rekap baru; Ethernet memakai `Ethernet (iface)`. IP lokal di-refresh tiap 5 menit atau segera saat jaringan berganti.
 - Data harian: `~/.local/state/netspeed-quota/daily/YYYY-MM-DD.json`
   State internal: `~/.local/state/netspeed-quota/state.json`
 - Rekap lebih tua dari 90 hari dipangkas otomatis.

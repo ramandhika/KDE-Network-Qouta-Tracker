@@ -26,6 +26,7 @@ Item {
     property var fmtRate: null
 
     readonly property var list: d.list || []
+    readonly property var wifi: d.wifi || ({})
 
     // ukuran popup — ramping; semua label yang bisa panjang wrap dan seluruh
     // konten bisa di-scroll, jadi tidak ada teks yang meluber/terpotong
@@ -136,6 +137,28 @@ Item {
                         text: fullRep.d.iface
                               ? fullRep.d.iface + " || " + (fullRep.d.type || "jaringan")
                               : ""
+                        color: Kirigami.Theme.disabledTextColor
+                        font.pointSize: Kirigami.Units.defaultFontPointSize - 1
+                        Layout.fillWidth: true
+                        elide: Text.ElideRight
+                    }
+                    PC3.Label {
+                        // detail AP dari `iw link` — ikut berubah tiap poll
+                        visible: text.length > 0
+                        text: {
+                            var p = []
+                            if (fullRep.wifi.signal !== undefined
+                                    && fullRep.wifi.signal !== null) {
+                                p.push(Math.round(fullRep.wifi.signal) + " dBm")
+                            }
+                            if (fullRep.wifi.freq) {
+                                p.push((fullRep.wifi.freq / 1000).toFixed(1) + " GHz")
+                            }
+                            if (fullRep.wifi.rate) {
+                                p.push(Math.round(fullRep.wifi.rate) + " Mbit/s")
+                            }
+                            return p.join(" · ")
+                        }
                         color: Kirigami.Theme.disabledTextColor
                         font.pointSize: Kirigami.Units.defaultFontPointSize - 1
                         Layout.fillWidth: true
@@ -283,10 +306,21 @@ Item {
                             }
 
                             PC3.Label {
-                                visible: modelData.ip !== ""
-                                text: modelData.ip
-                                      + (row.activeNet && fullRep.d.pubip
-                                         ? " / publik: " + fullRep.d.pubip : "")
+                                visible: text.length > 0
+                                text: {
+                                    var p = []
+                                    if (modelData.ip) {
+                                        p.push(modelData.ip)
+                                    }
+                                    if (modelData.first && modelData.last) {
+                                        p.push(Qt.formatTime(new Date(modelData.first * 1000), "HH:mm")
+                                               + "–" + Qt.formatTime(new Date(modelData.last * 1000), "HH:mm"))
+                                    }
+                                    if (row.activeNet && fullRep.d.pubip) {
+                                        p.push("publik: " + fullRep.d.pubip)
+                                    }
+                                    return p.join(" · ")
+                                }
                                 color: Kirigami.Theme.disabledTextColor
                                 font.pointSize: Kirigami.Units.defaultFontPointSize - 2
                                 Layout.fillWidth: true
