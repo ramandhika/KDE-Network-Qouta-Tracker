@@ -12,7 +12,7 @@ Widget panel KDE Plasma 6 untuk memantau **kecepatan jaringan realtime** dan **k
 - **Popup (satu area scroll dengan scrollbar tipis auto-hide; teks wrap, tidak ada yang terpotong)**:
   - Riwayat "hari ini nyambung ke jaringan apa saja": satu baris per jaringan + jam mulai–terakhir.
   - Jaringan aktif + detail AP WiFi (**sinyal, frekuensi, link rate** — ikut berubah tiap poll).
-  - Split IP: **Local**, **IPv6**, **Public**.
+  - Split IP: **Local**, **IPv6**, **Public**. Klik baris **Local** atau **Public** untuk menyalin nilainya ke clipboard.
   - Pemakaian `⇣` / `⇡` hari ini di jaringan aktif.
   - **Today's networks (n)**: semua jaringan yang dipakai hari ini + bar perbandingan pemakaian + rentang waktu pemakaian, diurutkan dari yang terakhir aktif.
 - **Counter harian per jaringan**: pindah WiFi → angka jaringan baru mulai dari 0; pindah balik → angka lama tetap. Perpindahan SSID terdeteksi tiap poll, jadi dua WiFi tidak pernah digabung menjadi satu baris.

@@ -71,6 +71,25 @@ Item {
         text: "999.9 GB"
     }
 
+    // Clipboard: QML tidak punya API clipboard langsung. TextEdit 0x0 dengan
+    // seleksi + copy() adalah pola standar plasmoid (tetap "visible" agar
+    // QTextControl punya seleksi aktif).
+    TextEdit {
+        id: clipHelper
+        width: 0
+        height: 0
+        opacity: 0
+        readOnly: true
+
+        function copyText(t) {
+            if (!t)
+                return
+            text = t
+            selectAll()
+            copy()
+        }
+    }
+
     // ---- subkomponen ----
     component SectionLabel: PC3.Label {
         Layout.fillWidth: true
@@ -78,6 +97,27 @@ Item {
         color: Kirigami.Theme.disabledTextColor
         font.pointSize: Kirigami.Units.defaultFontPointSize - 1
         font.letterSpacing: 0.8
+    }
+
+    // Baris IP yang bisa diklik untuk menyalin nilainya ke clipboard.
+    component CopyableLabel: PC3.Label {
+        id: copyable
+        property string value: ""
+
+        signal copyRequested()
+
+        Layout.fillWidth: true
+        elide: Text.ElideRight
+        Accessible.role: value.length > 0 ? Accessible.Button : Accessible.StaticText
+        Accessible.name: text
+        Accessible.description: value.length > 0 ? "Activate to copy to clipboard" : ""
+        Accessible.onPressAction: copyable.copyRequested()
+
+        TapHandler {
+            enabled: copyable.value.length > 0
+            cursorShape: Qt.PointingHandCursor
+            onTapped: copyable.copyRequested()
+        }
     }
 
     // Satu-satunya area scroll: seluruh isi popup. Dengan begini tinggi konten
@@ -175,11 +215,11 @@ Item {
 
                 SectionLabel { text: "IP addresses" }
 
-                // split: lokal dan publik terpisah
-                PC3.Label {
+                // split: lokal dan publik terpisah — klik = salin ke clipboard
+                CopyableLabel {
                     text: "Local: " + (fullRep.d.ip || "–")
-                    Layout.fillWidth: true
-                    elide: Text.ElideRight
+                    value: fullRep.d.ip
+                    onCopyRequested: clipHelper.copyText(value)
                 }
                 PC3.Label {
                     visible: fullRep.d.ip6 ? (fullRep.d.ip6.length > 0) : false
@@ -189,11 +229,11 @@ Item {
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                 }
-                PC3.Label {
+                CopyableLabel {
                     text: "Public: " + (fullRep.d.pubip || "...")
+                    value: fullRep.d.pubip
                     color: Kirigami.Theme.disabledTextColor
-                    Layout.fillWidth: true
-                    elide: Text.ElideRight
+                    onCopyRequested: clipHelper.copyText(value)
                 }
             }
 
@@ -205,7 +245,7 @@ Item {
                 spacing: Kirigami.Units.smallSpacing
                 Layout.fillWidth: true
 
-                SectionLabel { text: "Today's usage (" + (fullRep.dayLabel || fullRep.d.day || "") + ") — resets daily" }
+                SectionLabel { text: "Today's usage (" + (fullRep.dayLabel || fullRep.d.day || "") + ") resets daily" }
 
                 PC3.Label {
                     // jaringan aktif saja — font sedikit dikecilkan + wrap,
