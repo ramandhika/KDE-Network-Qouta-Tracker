@@ -118,17 +118,27 @@ Item {
         return n
     }
 
+    // Jam ringkas sesuai locale (locale 12 jam → "1:30 AM").
+    // Catatan: JANGAN pakai Qt.formatTime(date, Locale.ShortFormat) — nilai enum
+    // Locale.ShortFormat (1) dibaca sebagai Qt::ISODate, hasilnya selalu 24 jam
+    // "HH:mm:ss" (terlihat seperti 00:00:00). Ambil pola jam locale dulu.
+    function timeShort(ts) {
+        var t = Number(ts)
+        if (!(t > 0))
+            return ""
+        return Qt.formatTime(new Date(t * 1000),
+                             Qt.locale().timeFormat(Locale.ShortFormat))
+    }
+
     // Rentang waktu ringkas: "(1:30 AM - now)" untuk jaringan yang sedang aktif.
     function timeRange(first, last, active) {
-        if (!first)
+        var start = timeShort(first)
+        if (start.length === 0)
             return ""
-        var start = Qt.formatTime(new Date(Number(first) * 1000), Locale.ShortFormat)
         if (active)
             return "(" + start + " - now)"
-        if (!last)
-            return "(" + start + ")"
-        return "(" + start + " - "
-               + Qt.formatTime(new Date(Number(last) * 1000), Locale.ShortFormat) + ")"
+        var end = timeShort(last)
+        return end.length > 0 ? "(" + start + " - " + end + ")" : "(" + start + ")"
     }
 
     readonly property string activeName:
