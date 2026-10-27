@@ -229,13 +229,16 @@ Item {
     // Satu-satunya area scroll: seluruh isi popup.
     Flickable {
         id: popupFlick
+        objectName: "popupFlick"
         anchors.fill: parent
         clip: true
         contentWidth: width
         contentHeight: contentCol.height + fullRep.contentMargin * 2
         boundsBehavior: Flickable.StopAtBounds
 
-        PC3.ScrollBar.vertical: PC3.ScrollBar {}
+        // Scrollbar sengaja disembunyikan supaya tampilan lebih bersih.
+        // Scroll tetap berfungsi penuh (wheel / touch / drag) karena Flickable
+        // tidak butuh indikator; tidak ada ScrollBar yang dipasang.
 
         ColumnLayout {
             id: contentCol

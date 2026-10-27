@@ -4,7 +4,7 @@
         "Id": "org.ram.netspeed",
         "Name": "Network Speed Quota",
         "Description": "Kecepatan jaringan di panel; hover & popup menampilkan kuota hari ini di jaringan aktif (reset otomatis tiap hari per jaringan), rekap semua jaringan yang dipakai hari ini beserta pakainya, dan split IP (lokal, IPv6, publik).",
-        "Version": "3.5",
+        "Version": "3.6",
         "Icon": "network-wireless",
         "Authors": [
             {
