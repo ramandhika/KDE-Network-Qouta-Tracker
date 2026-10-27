@@ -102,6 +102,38 @@ Item {
     readonly property bool hasIp6: String(d.ip6 || "").length > 0
     readonly property bool hasPublicIp: String(d.pubip || "").length > 0
 
+    // Nama tampilan: SSID WiFi diberi sufiks " - WiFi"; Ethernet dinormalkan
+    // ("Wired (enp3s0)" → "Ethernet (enp3s0)"); tipe lain diberi sufiks tipe.
+    function displayName(item) {
+        if (!item)
+            return ""
+        var n = String(item.name || "")
+        var t = String(item.type || "")
+        if (t === "wifi")
+            return n + " - WiFi"
+        if (t === "ethernet")
+            return n.replace(/^Wired\b/, "Ethernet")
+        if (t.length > 0)
+            return n + " - " + t.charAt(0).toUpperCase() + t.slice(1)
+        return n
+    }
+
+    // Rentang waktu ringkas: "(1:30 AM - now)" untuk jaringan yang sedang aktif.
+    function timeRange(first, last, active) {
+        if (!first)
+            return ""
+        var start = Qt.formatTime(new Date(Number(first) * 1000), Locale.ShortFormat)
+        if (active)
+            return "(" + start + " - now)"
+        if (!last)
+            return "(" + start + ")"
+        return "(" + start + " - "
+               + Qt.formatTime(new Date(Number(last) * 1000), Locale.ShortFormat) + ")"
+    }
+
+    readonly property string activeName:
+        displayName({name: d.net || "", type: d.type || "", iface: d.iface || ""})
+
     // lebar kolom tetap agar nilai yang berubah tidak menggeser layout
     TextMetrics {
         id: usageMetrics
@@ -233,7 +265,7 @@ Item {
 
                         PC3.Label {
                             Layout.fillWidth: true
-                            text: d.net || "Not connected"
+                            text: fullRep.d.net ? fullRep.activeName : "Not connected"
                             font.bold: true
                             elide: Text.ElideRight
                         }
@@ -294,7 +326,7 @@ Item {
                     PC3.Label {
                         Layout.fillWidth: true
                         elide: Text.ElideRight
-                        text: "TODAY · " + (fullRep.d.net || "—")
+                        text: "TODAY · " + (fullRep.d.net ? fullRep.activeName : "—")
                         color: Kirigami.Theme.disabledTextColor
                         font.pointSize: Kirigami.Units.defaultFontPointSize - 2
                         font.letterSpacing: 0.6
@@ -372,83 +404,211 @@ Item {
 
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: Kirigami.Units.smallSpacing * 1.5
+                    spacing: Kirigami.Units.smallSpacing
 
                     Repeater {
                         model: fullRep.list
 
-                        delegate: ColumnLayout {
-                            id: row
+                        delegate: Rectangle {
+                            id: rowCard
                             required property var modelData
-                            readonly property real usage: modelData.down + modelData.up
+
+                            readonly property real usage:
+                                Number(modelData.down || 0) + Number(modelData.up || 0)
                             readonly property bool activeNet:
                                 fullRep.d.net === modelData.name
+                            readonly property real share: {
+                                var t = Number(fullRep.total.down || 0)
+                                        + Number(fullRep.total.up || 0)
+                                return t > 0 ? rowCard.usage / t : 0
+                            }
+                            // aktif → hijau, non-aktif → abu-abu
+                            readonly property color rowColor: rowCard.activeNet
+                                ? Kirigami.Theme.positiveTextColor
+                                : Kirigami.Theme.disabledTextColor
+                            readonly property color accent: Kirigami.Theme.positiveTextColor
 
-                            spacing: 2
                             Layout.fillWidth: true
+                            implicitHeight: rowCol.implicitHeight
+                                            + Kirigami.Units.smallSpacing * 2
+                            radius: Kirigami.Units.smallSpacing
+                            // kartu aktif diberi tint hijau tipis, hover netral
+                            color: rowCard.activeNet
+                                ? Qt.rgba(accent.r, accent.g, accent.b, 0.12)
+                                : (hover.hovered
+                                   ? Qt.rgba(Kirigami.Theme.textColor.r,
+                                             Kirigami.Theme.textColor.g,
+                                             Kirigami.Theme.textColor.b, 0.06)
+                                   : "transparent")
+                            Behavior on color {
+                                ColorAnimation { duration: 140 }
+                            }
 
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: Kirigami.Units.smallSpacing
+                            HoverHandler { id: hover }
 
-                                PC3.Label {
+                            // aksen kiri penanda jaringan yang sedang aktif
+                            Rectangle {
+                                visible: rowCard.activeNet
+                                width: 3
+                                height: parent.height - Kirigami.Units.smallSpacing * 2
+                                radius: width / 2
+                                anchors.left: parent.left
+                                anchors.leftMargin: Kirigami.Units.smallSpacing * 0.5
+                                anchors.verticalCenter: parent.verticalCenter
+                                color: rowCard.accent
+                            }
+
+                            ColumnLayout {
+                                id: rowCol
+                                anchors.fill: parent
+                                anchors.topMargin: Kirigami.Units.smallSpacing
+                                anchors.bottomMargin: Kirigami.Units.smallSpacing
+                                anchors.leftMargin: Kirigami.Units.smallSpacing
+                                                    * (rowCard.activeNet ? 2 : 1)
+                                anchors.rightMargin: Kirigami.Units.smallSpacing
+                                spacing: 2
+
+                                // baris 1: dot live + nama + total pemakaian
+                                RowLayout {
                                     Layout.fillWidth: true
-                                    text: (row.activeNet ? "● " : "") + modelData.name
-                                    font.bold: row.activeNet
-                                    elide: Text.ElideRight
-                                }
-                                PC3.Label {
-                                    Layout.minimumWidth: usageMetrics.width
-                                    horizontalAlignment: Text.AlignRight
-                                    text: fullRep.fmtBytes ? fullRep.fmtBytes(row.usage) : ""
-                                    color: Kirigami.Theme.textColor
-                                }
-                            }
+                                    spacing: Kirigami.Units.smallSpacing * 0.75
 
-                            // bar perbandingan pemakaian — netral, seragam
-                            Item {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 3
+                                    Rectangle {
+                                        visible: rowCard.activeNet
+                                        Layout.alignment: Qt.AlignVCenter
+                                        width: 6
+                                        height: 6
+                                        radius: width / 2
+                                        color: rowCard.accent
 
-                                Rectangle {
-                                    width: parent.width * Math.min(1, row.usage / fullRep.maxUsage)
-                                    height: parent.height
-                                    radius: height / 2
-                                    color: Kirigami.Theme.disabledTextColor
-                                    opacity: 0.8
-                                }
-                            }
-
-                            PC3.Label {
-                                visible: text.length > 0
-                                text: {
-                                    var p = []
-                                    if (modelData.ip)
-                                        p.push(modelData.ip)
-                                    if (modelData.first && modelData.last) {
-                                        p.push(Qt.formatTime(new Date(modelData.first * 1000), "HH:mm")
-                                               + "–" + Qt.formatTime(new Date(modelData.last * 1000), "HH:mm"))
+                                        SequentialAnimation on opacity {
+                                            running: rowCard.activeNet
+                                            loops: Animation.Infinite
+                                            NumberAnimation {
+                                                to: 0.3
+                                                duration: 850
+                                                easing.type: Easing.InOutQuad
+                                            }
+                                            NumberAnimation {
+                                                to: 1.0
+                                                duration: 850
+                                                easing.type: Easing.InOutQuad
+                                            }
+                                        }
                                     }
-                                    if (row.activeNet && fullRep.d.pubip)
-                                        p.push("public: " + fullRep.d.pubip)
-                                    return p.join(" · ")
+                                    PC3.Label {
+                                        Layout.fillWidth: true
+                                        text: fullRep.displayName(rowCard.modelData)
+                                        font.bold: rowCard.activeNet
+                                        color: rowCard.rowColor
+                                        elide: Text.ElideRight
+                                    }
+                                    PC3.Label {
+                                        Layout.minimumWidth: usageMetrics.width
+                                        horizontalAlignment: Text.AlignRight
+                                        text: fullRep.fmtBytes
+                                              ? fullRep.fmtBytes(rowCard.usage) : ""
+                                        font.bold: rowCard.activeNet
+                                        color: rowCard.rowColor
+                                    }
                                 }
-                                color: Kirigami.Theme.disabledTextColor
-                                font.pointSize: Kirigami.Units.defaultFontPointSize - 2
-                                Layout.fillWidth: true
-                                wrapMode: Text.WrapAnywhere
+
+                                // bar perbandingan pemakaian
+                                Item {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 3
+
+                                    Rectangle {
+                                        width: parent.width
+                                               * Math.min(1, rowCard.usage / fullRep.maxUsage)
+                                        height: parent.height
+                                        radius: height / 2
+                                        color: rowCard.rowColor
+                                        opacity: rowCard.activeNet ? 0.9 : 0.55
+                                        Behavior on width {
+                                            NumberAnimation {
+                                                duration: 250
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // baris 2: split ⇣/⇡ + porsi pemakaian hari ini
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: Kirigami.Units.smallSpacing
+
+                                    PC3.Label {
+                                        text: "⇣ " + (fullRep.fmtBytes
+                                                      ? fullRep.fmtBytes(modelData.down || 0) : "")
+                                        color: fullRep.colDown
+                                        font.pointSize: Kirigami.Units.defaultFontPointSize - 2
+                                    }
+                                    PC3.Label {
+                                        text: "⇡ " + (fullRep.fmtBytes
+                                                      ? fullRep.fmtBytes(modelData.up || 0) : "")
+                                        color: fullRep.colUp
+                                        font.pointSize: Kirigami.Units.defaultFontPointSize - 2
+                                    }
+                                    PC3.Label {
+                                        Layout.fillWidth: true
+                                        horizontalAlignment: Text.AlignRight
+                                        text: Math.round(rowCard.share * 100) + "%"
+                                        font.bold: rowCard.activeNet
+                                        color: rowCard.rowColor
+                                        font.pointSize: Kirigami.Units.defaultFontPointSize - 2
+                                    }
+                                }
+
+                                // baris 3: rentang waktu + IP
+                                PC3.Label {
+                                    visible: text.length > 0
+                                    text: {
+                                        var p = []
+                                        var tr = fullRep.timeRange(modelData.first,
+                                                                   modelData.last,
+                                                                   rowCard.activeNet)
+                                        if (tr.length > 0)
+                                            p.push(tr)
+                                        if (modelData.ip)
+                                            p.push(modelData.ip)
+                                        return p.join(" · ")
+                                    }
+                                    color: rowCard.rowColor
+                                    opacity: rowCard.activeNet ? 0.8 : 1
+                                    font.pointSize: Kirigami.Units.defaultFontPointSize - 2
+                                    Layout.fillWidth: true
+                                    wrapMode: Text.WrapAnywhere
+                                }
                             }
                         }
                     }
                 }
 
-                PC3.Label {
+                // empty state
+                ColumnLayout {
                     visible: fullRep.list.length === 0
-                    text: "No networks recorded today yet."
-                    color: Kirigami.Theme.disabledTextColor
-                    font.pointSize: Kirigami.Units.defaultFontPointSize - 1
                     Layout.fillWidth: true
-                    wrapMode: Text.Wrap
+                    Layout.topMargin: Kirigami.Units.smallSpacing
+                    spacing: Kirigami.Units.smallSpacing
+
+                    Kirigami.Icon {
+                        source: "network-offline"
+                        fallback: "network-disconnect"
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
+                        Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
+                        opacity: 0.5
+                    }
+                    PC3.Label {
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "No networks recorded today yet."
+                        color: Kirigami.Theme.disabledTextColor
+                        font.pointSize: Kirigami.Units.defaultFontPointSize - 1
+                        wrapMode: Text.Wrap
+                    }
                 }
             }
 

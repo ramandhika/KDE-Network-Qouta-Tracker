@@ -43,11 +43,25 @@ PlasmoidItem {
         return fmtBytes(bs) + "/s"
     }
 
-    Plasmoid.title: d.net || "Network Speed Quota"
+    Plasmoid.title: d.net ? displayName(d.net, d.type) : "Network Speed Quota"
     Plasmoid.icon: d.type === "wifi" ? "network-wireless" : "network-wired"
 
+    // nama tampilan konsisten dengan popup: SSID diberi sufiks " - WiFi",
+    // Ethernet "Wired (iface)" dinormalkan menjadi "Ethernet (iface)"
+    function displayName(name, type) {
+        if (!name)
+            return ""
+        if (type === "wifi")
+            return name + " - WiFi"
+        if (type === "ethernet")
+            return name.replace(/^Wired\b/, "Ethernet")
+        if (type)
+            return name + " - " + type.charAt(0).toUpperCase() + type.slice(1)
+        return name
+    }
+
     // Hover: kuota hari ini di jaringan aktif + split IP
-    toolTipMainText: d.net || "Not connected"
+    toolTipMainText: d.net ? displayName(d.net, d.type) : "Not connected"
     toolTipSubText: "Today: " + fmtBytes(curr.down + curr.up)
         + (d.ip ? " || Local IP: " + d.ip : "")
         + (d.pubip ? " || Public IP: " + d.pubip : "")
