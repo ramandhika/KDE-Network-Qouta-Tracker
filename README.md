@@ -13,7 +13,7 @@ Widget panel KDE Plasma 6 untuk memantau **kecepatan jaringan realtime** dan **k
   - Header: status koneksi (dot hijau/kuning/merah), nama jaringan, interface + tipe, dan detail AP WiFi (**sinyal, frekuensi, link rate** — ikut berubah tiap poll).
   - Card **TODAY**: total pemakaian hari ini di jaringan aktif (angka besar), split `⇣` / `⇡`, plus total semua jaringan hari ini.
   - Split IP: **Local**, **IPv6** (hanya tampil jika ada), **Public**. Klik baris untuk menyalin — muncul umpan balik **✓** saat berhasil disalin.
-  - **Today's networks (n)**: setiap jaringan tampil sebagai kartu ringkas — dot live berdenyut + nama (dengan penanda tipe `SSID - WiFi` / `Ethernet (iface)`), total pemakaian, bar perbandingan, split `⇣` / `⇡`, persentase porsi hari ini, dan rentang waktu ringkas `(1:30 AM - now)` + IP. Jaringan aktif berwarna **hijau** dengan tint kartu dan aksen kiri; jaringan lain **abu-abu** dan menyala saat di-hover.
+  - **Today's networks (n)**: setiap jaringan tampil sebagai kartu ringkas — dot status + nama (dengan penanda tipe `SSID - WiFi` / `Ethernet (iface)`), total pemakaian, bar perbandingan, split `⇣` / `⇡`, persentase porsi hari ini, dan rentang waktu ringkas `(1:30 AM - now)` + IP. Jaringan aktif ditandai **dot + nama hijau** saja (angka, bar, dan meta tetap netral); jaringan lain abu-abu. Tanpa animasi — kartu netral dengan hover halus.
 - **Counter harian per jaringan**: pindah WiFi → angka jaringan baru mulai dari 0; pindah balik → angka lama tetap. Perpindahan SSID terdeteksi tiap poll, jadi dua WiFi tidak pernah digabung menjadi satu baris.
 - Reset otomatis saat ganti hari (tanggal lokal), arsip harian disimpan **90 hari**.
 - Beberapa instance widget tidak menghitung dobel (`flock` pada state dir).

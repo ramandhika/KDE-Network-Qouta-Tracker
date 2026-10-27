@@ -422,53 +422,37 @@ Item {
                                         + Number(fullRep.total.up || 0)
                                 return t > 0 ? rowCard.usage / t : 0
                             }
-                            // aktif → hijau, non-aktif → abu-abu
+                            // hijau hanya untuk penanda aktif (dot + nama);
+                            // sisanya netral supaya tidak "penuh hijau"
                             readonly property color rowColor: rowCard.activeNet
                                 ? Kirigami.Theme.positiveTextColor
                                 : Kirigami.Theme.disabledTextColor
-                            readonly property color accent: Kirigami.Theme.positiveTextColor
+                            readonly property color valueColor: rowCard.activeNet
+                                ? Kirigami.Theme.textColor
+                                : Kirigami.Theme.disabledTextColor
 
                             Layout.fillWidth: true
                             implicitHeight: rowCol.implicitHeight
                                             + Kirigami.Units.smallSpacing * 2
                             radius: Kirigami.Units.smallSpacing
-                            // kartu aktif diberi tint hijau tipis, hover netral
-                            color: rowCard.activeNet
-                                ? Qt.rgba(accent.r, accent.g, accent.b, 0.12)
-                                : (hover.hovered
-                                   ? Qt.rgba(Kirigami.Theme.textColor.r,
-                                             Kirigami.Theme.textColor.g,
-                                             Kirigami.Theme.textColor.b, 0.06)
-                                   : "transparent")
-                            Behavior on color {
-                                ColorAnimation { duration: 140 }
-                            }
+                            // kartu netral; hover sedikit lebih terang (tanpa animasi)
+                            color: hover.hovered
+                                ? Qt.rgba(Kirigami.Theme.textColor.r,
+                                          Kirigami.Theme.textColor.g,
+                                          Kirigami.Theme.textColor.b, 0.08)
+                                : Qt.rgba(Kirigami.Theme.textColor.r,
+                                          Kirigami.Theme.textColor.g,
+                                          Kirigami.Theme.textColor.b, 0.04)
 
                             HoverHandler { id: hover }
-
-                            // aksen kiri penanda jaringan yang sedang aktif
-                            Rectangle {
-                                visible: rowCard.activeNet
-                                width: 3
-                                height: parent.height - Kirigami.Units.smallSpacing * 2
-                                radius: width / 2
-                                anchors.left: parent.left
-                                anchors.leftMargin: Kirigami.Units.smallSpacing * 0.5
-                                anchors.verticalCenter: parent.verticalCenter
-                                color: rowCard.accent
-                            }
 
                             ColumnLayout {
                                 id: rowCol
                                 anchors.fill: parent
-                                anchors.topMargin: Kirigami.Units.smallSpacing
-                                anchors.bottomMargin: Kirigami.Units.smallSpacing
-                                anchors.leftMargin: Kirigami.Units.smallSpacing
-                                                    * (rowCard.activeNet ? 2 : 1)
-                                anchors.rightMargin: Kirigami.Units.smallSpacing
+                                anchors.margins: Kirigami.Units.smallSpacing
                                 spacing: 2
 
-                                // baris 1: dot live + nama + total pemakaian
+                                // baris 1: dot status + nama + total pemakaian
                                 RowLayout {
                                     Layout.fillWidth: true
                                     spacing: Kirigami.Units.smallSpacing * 0.75
@@ -479,22 +463,7 @@ Item {
                                         width: 6
                                         height: 6
                                         radius: width / 2
-                                        color: rowCard.accent
-
-                                        SequentialAnimation on opacity {
-                                            running: rowCard.activeNet
-                                            loops: Animation.Infinite
-                                            NumberAnimation {
-                                                to: 0.3
-                                                duration: 850
-                                                easing.type: Easing.InOutQuad
-                                            }
-                                            NumberAnimation {
-                                                to: 1.0
-                                                duration: 850
-                                                easing.type: Easing.InOutQuad
-                                            }
-                                        }
+                                        color: Kirigami.Theme.positiveTextColor
                                     }
                                     PC3.Label {
                                         Layout.fillWidth: true
@@ -509,11 +478,11 @@ Item {
                                         text: fullRep.fmtBytes
                                               ? fullRep.fmtBytes(rowCard.usage) : ""
                                         font.bold: rowCard.activeNet
-                                        color: rowCard.rowColor
+                                        color: rowCard.valueColor
                                     }
                                 }
 
-                                // bar perbandingan pemakaian
+                                // bar perbandingan pemakaian — netral
                                 Item {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 3
@@ -523,14 +492,10 @@ Item {
                                                * Math.min(1, rowCard.usage / fullRep.maxUsage)
                                         height: parent.height
                                         radius: height / 2
-                                        color: rowCard.rowColor
-                                        opacity: rowCard.activeNet ? 0.9 : 0.55
-                                        Behavior on width {
-                                            NumberAnimation {
-                                                duration: 250
-                                                easing.type: Easing.OutCubic
-                                            }
-                                        }
+                                        color: rowCard.activeNet
+                                               ? Kirigami.Theme.textColor
+                                               : Kirigami.Theme.disabledTextColor
+                                        opacity: rowCard.activeNet ? 0.55 : 0.45
                                     }
                                 }
 
@@ -554,9 +519,13 @@ Item {
                                     PC3.Label {
                                         Layout.fillWidth: true
                                         horizontalAlignment: Text.AlignRight
-                                        text: Math.round(rowCard.share * 100) + "%"
+                                        text: {
+                                            var pct = Math.round(rowCard.share * 100)
+                                            return (rowCard.share > 0 && pct === 0)
+                                                ? "<1%" : pct + "%"
+                                        }
                                         font.bold: rowCard.activeNet
-                                        color: rowCard.rowColor
+                                        color: rowCard.valueColor
                                         font.pointSize: Kirigami.Units.defaultFontPointSize - 2
                                     }
                                 }
@@ -575,8 +544,8 @@ Item {
                                             p.push(modelData.ip)
                                         return p.join(" · ")
                                     }
-                                    color: rowCard.rowColor
-                                    opacity: rowCard.activeNet ? 0.8 : 1
+                                    color: rowCard.valueColor
+                                    opacity: rowCard.activeNet ? 0.65 : 1
                                     font.pointSize: Kirigami.Units.defaultFontPointSize - 2
                                     Layout.fillWidth: true
                                     wrapMode: Text.WrapAnywhere
