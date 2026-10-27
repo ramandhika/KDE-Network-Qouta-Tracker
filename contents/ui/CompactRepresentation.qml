@@ -48,8 +48,8 @@ RowLayout {
         return Kirigami.Theme.disabledTextColor
     }
 
-    // ukuran fixed
-    readonly property real iconWidth: Kirigami.Units.iconSizes.small
+    // ukuran dot kecil, setara indikator widget Thermal & Fan
+    readonly property real iconWidth: Math.round(Kirigami.Units.iconSizes.small * 0.55)
 
     TextMetrics {
         id: downMetrics
